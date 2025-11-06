@@ -1,4 +1,22 @@
-# Welcome to your Expo app 👋
+# Expo React Native Google Sign In
+
+Expo React Native app with Google Sign In using [`react-native-google-signin/google-signin`](https://github.com/react-native-google-signin/google-signin)
+very simple for learning purposes
+
+google sign library web [WEB react-native-google-signin](https://react-native-google-signin.github.io/)
+
+
+
+<p align="center">
+  <img src="README-images/homeindexrn.png" alt="home">
+</p>
+
+<p align="center">
+  <img src="README-images/indexSigin.png" alt="sign in">
+</p>
+
+----
+
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
@@ -10,10 +28,25 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
-2. Start the app
+2. Run the app for android folder 
+
+```bash
+   npm expo run:android
+   ```
+
+or
+
+Run the app for ios folder 
+
+```bash
+   npm expo run:ios
+   ```
+
+
+3. Start the app
 
    ```bash
-   npx expo start
+   npx  start
    ```
 
 In the output, you'll find options to open the app in a
@@ -25,6 +58,47 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+
+## Learn more
+
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+
+------
+
+------
+
+## Create a new project
+
+Prerequisites:
+
+- [Node.js](https://nodejs.org/en/download/)
+- [Expo](https://docs.expo.dev/guides/installation/)
+- [Android Studio](https://developer.android.com/studio)
+
+In windows in for android studio put the path of the jdk in the environment variables and the path of the android studio in the environment variables:
+
+<p align="center">
+  <img src="README-images/envvariablesAndroid.png" alt="env variables">
+</p>
+
+```bash
+ANDROID_HOME = path\to\AndroidSdk
+# example ANDROID_HOME = C:\Users\ProgramFiles\AppData\Local\AndroidSdk
+JAVA_HOME = path\to\JDK
+# example JAVA_HOME = C:\Users\ProgramFiles\AppData\Local\Android\jbr
+```
+
+---
+
+For create a new project:
+
+```bash
+npx create-expo-app@latest <project-name>
+# example npx create-expo-app google-native
+```
+
 ## Get a fresh project
 
 When you're ready, run:
@@ -33,18 +107,81 @@ When you're ready, run:
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Run the app for the android folder, which takes approximately 30 minutes to run depending on the speed of your computer, when it's done it will run the app in the android emulator.
 
-## Learn more
+```bash
+   npm expo run:android
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Create .env file in the root of the project and add the following or copy the .env.example file to .env:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```bash
+GOOGLE_CLIENT_ID_WEB = your_google_client_id_web
+GOOGLE_CLIENT_ID_IOS = your_google_client_id_ios
+IOS_URL_SCHEMA = your_ios_url_schema
+```
+for doing this go to the [google console](https://console.developers.google.com/) and create a new project and add the android and ios client ids.
 
-## Join the community
+<p align="center">
+  <img src="README-images/credentialsgoogle.png" alt="credentials">
+</p>
 
-Join our community of developers creating universal apps.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+IN WEB:
+<p align="center">
+  <img src="README-images/webgoogle.png" alt="credentialsweb">
+</p>
+
+
+IN ANDROID:
+<p align="center">
+  <img src="README-images/androidgoogle.png" alt="credentialsandroid">
+</p>
+
+<p align="center">
+  <img src="README-images/androidpackegename.png" alt="credentialsandroidpackagename">
+</p>
+
+
+
+for command to get the debug keystore original:
+
+```powershell
+keytool -keystore path-to-debug-or-production-keystore -list -v
+```
+
+
+for command to get the debug keystore in powershell:
+
+```powershell
+& "D:\AndroidStudio\jbr\bin\keytool.exe" -list -v -keystore "android/app/debug.keystore" -alias androiddebugkey -storepass android -keypass android
+```
+
+IN IOS:
+<p align="center">
+  <img src="README-images/iosgoogle.png" alt="credentialsios">
+</p>
+
+library used:
+
+```bash
+npm i @react-native-google-signin/google-signin@latest
+npx expo install @react-native-google-signin/google-signin expo-dev-client
+npx expo install expo-constants
+```
+
+### 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 👨‍💻 Author / Autor
+
+**Diego Ivan Perea Montealegre**
+
+- GitHub: [@diegoperea20](https://github.com/diegoperea20)
+
+---
+
+Created by [Diego Ivan Perea Montealegre](https://github.com/diegoperea20)
