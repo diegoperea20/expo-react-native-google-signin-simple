@@ -1,7 +1,7 @@
-# Expo React Native Google Sign In
+# Expo React Native Google Sign In with Nativewind (Tailwind CSS)
 
 Expo React Native app with Google Sign In using [`react-native-google-signin/google-signin`](https://github.com/react-native-google-signin/google-signin)
-very simple for learning purposes
+very simple for learning purposes with Nativewind (Tailwind CSS)
 
 google sign library web [WEB react-native-google-signin](https://react-native-google-signin.github.io/)
 
@@ -169,6 +169,16 @@ npm i @react-native-google-signin/google-signin@latest
 npx expo install @react-native-google-signin/google-signin expo-dev-client
 npx expo install expo-constants
 ```
+
+## Nativewind (Tailwind CSS)
+
+For use Nativewind (Tailwind CSS) you need to run the following commands in the web :
+### [Nativewind](https://www.nativewind.dev/docs/getting-started/installation)
+
+
+----
+
+
 
 ### 📄 License
 

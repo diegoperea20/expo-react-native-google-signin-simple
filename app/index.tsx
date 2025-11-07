@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, SafeAreaView, Alert } from 'react-native';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useState, useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -52,7 +52,6 @@ export default function App() {
           setIsSignedIn(true);
         }
       } catch (_error) {
-        // If there's an error, just continue without setting user as signed in
         console.log('No existing session found');
         setUserInfo({ user: null, error: null });
         setIsSignedIn(false);
@@ -65,21 +64,15 @@ export default function App() {
   const handleGoogleSignIn = async () => {
     try {
       setIsSigninInProgress(true);
-      
-      // Check if device has Google Play Services
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       
-      // Sign out first to ensure clean state
       try {
         await GoogleSignin.signOut();
       } catch (_signOutError) {
         console.log('No previous session to sign out from');
       }
       
-      // Sign in
       await GoogleSignin.signIn();
-      
-      // Get user info after successful sign in
       const currentUser = await GoogleSignin.getCurrentUser();
       
       if (!currentUser?.user) {
@@ -131,152 +124,57 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Welcome</Text>
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <View className="flex-1 items-center justify-center p-5">
+        <Text className="text-2xl font-bold text-gray-800 mb-8">Welcome</Text>
         
         {isSigninInProgress ? (
-          <View style={styles.loadingContainer}>
+          <View className="items-center justify-center p-5">
             <ActivityIndicator size="large" color="#4285F4" />
-            <Text style={styles.loadingText}>Signing in...</Text>
+            <Text className="mt-2 text-gray-600 text-base">Signing in...</Text>
           </View>
         ) : isSignedIn && userInfo.user ? (
-          <View style={styles.profileContainer}>
+          <View className="items-center bg-white p-6 rounded-xl shadow-md w-full max-w-[300px]">
             {userInfo.user.photo && (
               <Image
                 source={{ uri: userInfo.user.photo }}
-                style={styles.profileImage}
+                className="w-24 h-24 rounded-full mb-4 border-2 border-gray-200"
                 resizeMode="cover"
               />
             )}
-            <Text style={styles.userName}>{userInfo.user.name}</Text>
-            <Text style={styles.userEmail}>{userInfo.user.email}</Text>
+            <Text className="text-lg font-bold text-gray-800 mb-1 text-center">
+              {userInfo.user.name}
+            </Text>
+            <Text className="text-base text-gray-500 mb-6 text-center">
+              {userInfo.user.email}
+            </Text>
             
             <TouchableOpacity
-              style={[styles.button, styles.signOutButton]}
+              className="flex-row items-center justify-center py-3 px-6 bg-red-500 rounded-lg w-full"
               onPress={handleSignOut}
               disabled={isSigninInProgress}
             >
-              <MaterialCommunityIcons name="logout" size={20} color="white" style={styles.buttonIcon} />
-              <Text style={styles.buttonText}>Sign Out</Text>
+              <MaterialCommunityIcons name="logout" size={20} color="white" />
+              <Text className="text-white font-semibold ml-2">Sign Out</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.button, styles.signInButton]}
+            className="flex-row items-center justify-center py-3 px-6 bg-blue-500 rounded-lg w-full max-w-[300px] shadow-md"
             onPress={handleGoogleSignIn}
             disabled={isSigninInProgress}
           >
-            <MaterialCommunityIcons name="google" size={20} color="white" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Sign in with Google</Text>
+            <MaterialCommunityIcons name="google" size={20} color="white" />
+            <Text className="text-white font-semibold ml-2">Sign in with Google</Text>
           </TouchableOpacity>
         )}
         
         {userInfo.error && (
-          <Text style={styles.errorText}>{userInfo.error}</Text>
+          <Text className="text-red-500 mt-5 text-center px-5">
+            {userInfo.error}
+          </Text>
         )}
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    color: '#333',
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    marginVertical: 10,
-    width: '100%',
-    maxWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  signInButton: {
-    backgroundColor: '#4285F4',
-  },
-  signOutButton: {
-    backgroundColor: '#EA4335',
-    marginTop: 20,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 10,
-  },
-  buttonIcon: {
-    marginRight: 10,
-  },
-  profileContainer: {
-    alignItems: 'center',
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 12,
-    width: '100%',
-    maxWidth: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 15,
-    borderWidth: 3,
-    borderColor: '#f0f0f0',
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
-    textAlign: 'center',
-  },
-  userEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 10,
-    color: '#666',
-    fontSize: 16,
-  },
-  errorText: {
-    color: '#EA4335',
-    marginTop: 20,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-});
