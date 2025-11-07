@@ -3,6 +3,11 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { useState, useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import { supabase } from '../supabaseClient';
+import * as WebBrowser from 'expo-web-browser';
+
+// Required for Google OAuth in Expo
+WebBrowser.maybeCompleteAuthSession();
 
 // Get credentials
 const { 
@@ -61,60 +66,160 @@ export default function App() {
     checkSignInStatus();
   }, []);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsSigninInProgress(true);
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      
-      try {
-        await GoogleSignin.signOut();
-      } catch (_signOutError) {
-        console.log('No previous session to sign out from');
-      }
-      
-      await GoogleSignin.signIn();
-      const currentUser = await GoogleSignin.getCurrentUser();
-      
-      if (!currentUser?.user) {
-        throw new Error('Failed to retrieve user information');
-      }
-      
-      setUserInfo({
-        user: {
-          id: currentUser.user.id || '',
-          name: currentUser.user.name || 'No Name',
-          email: currentUser.user.email || '',
-          photo: currentUser.user.photo || null,
-        },
-        error: null,
+  const createOrUpdateAccount = async (userId: string, email: string, name: string, accessToken: string, refreshToken: string, idToken: string) => {
+  try {
+    // First, check if the account exists
+    const { data: existingAccount, error: fetchError } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('provider_account_id', userId)
+      .single();
+
+    // Generate a UUID for new accounts
+    const uuid = () => {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
       });
-      
-      setIsSignedIn(true);
-      
-    } catch (error: any) {
-      let errorMessage = 'An error occurred during sign in';
-      
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        errorMessage = 'Sign in was cancelled';
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        errorMessage = 'Sign in is already in progress';
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        errorMessage = 'Google Play Services not available or outdated';
-      } else {
-        console.error('Google Sign-In Error:', error);
-      }
-      
-      setUserInfo(prev => ({ ...prev, error: errorMessage }));
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setIsSigninInProgress(false);
+    };
+
+    const accountData: any = {
+      id: uuid(),  // Generate UUID for new accounts
+      user_id: userId,
+      type: 'oauth',
+      provider: 'google',
+      provider_account_id: userId,
+      refresh_token: refreshToken,
+      access_token: accessToken,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      scope: 'email profile',
+      id_token: idToken,
+      session_state: 'active',
+    };
+
+    // Only include name if the column exists in the table
+    if (existingAccount?.hasOwnProperty('name')) {
+      accountData.name = name;
     }
-  };
+
+    if (existingAccount) {
+      // For existing accounts, keep the original ID
+      accountData.id = existingAccount.id;
+      // Update existing account
+      const { data: updatedAccount, error: updateError } = await supabase
+        .from('accounts')
+        .update(accountData)
+        .eq('provider_account_id', userId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return updatedAccount;
+    } else {
+      // Create new account with generated UUID
+      const { data: newAccount, error: insertError } = await supabase
+        .from('accounts')
+        .insert([accountData])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Insert error details:', insertError);
+        throw insertError;
+      }
+      return newAccount;
+    }
+  } catch (error) {
+    console.error('Error managing account:', error);
+    throw error;
+  }
+};
+
+  const handleGoogleSignIn = async () => {
+  try {
+    setIsSigninInProgress(true);
+    
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    
+    try {
+      await GoogleSignin.signOut();
+    } catch (_signOutError) {
+      console.log('No previous session to sign out from');
+    }
+    
+    const userInfo = await GoogleSignin.signIn();
+    const { accessToken, idToken } = await GoogleSignin.getTokens();
+    
+    if (!accessToken || !idToken) {
+      throw new Error('Failed to get authentication tokens');
+    }
+
+    // Sign in with Supabase using Google OAuth
+    const { data: { user, session }, error: supabaseError } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+      access_token: accessToken,
+    });
+
+    if (supabaseError || !user || !session) {
+      throw supabaseError || new Error('Failed to authenticate with Supabase');
+    }
+
+    // Create or update account in your accounts table
+    await createOrUpdateAccount(
+      user.id,
+      user.email || '',
+      user.user_metadata?.full_name || 'No Name',
+      accessToken,
+      session.refresh_token || '',
+      idToken
+    );
+
+    // Update UI state
+    setUserInfo({
+      user: {
+        id: user.id,
+        name: user.user_metadata?.full_name || 'No Name',
+        email: user.email || '',
+        photo: user.user_metadata?.avatar_url || null,
+      },
+      error: null,
+    });
+    
+    setIsSignedIn(true);
+    
+  } catch (error: any) {
+    let errorMessage = 'An error occurred during sign in';
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      errorMessage = 'Sign in was cancelled';
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      errorMessage = 'Sign in is already in progress';
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      errorMessage = 'Google Play Services not available or outdated';
+    } else {
+      console.error('Sign-in Error:', error);
+      errorMessage = error.message || errorMessage;
+    }
+    
+    setUserInfo(prev => ({ ...prev, error: errorMessage }));
+    Alert.alert('Error', errorMessage);
+  } finally {
+    setIsSigninInProgress(false);
+  }
+};
 
   const handleSignOut = async () => {
     try {
+      // Sign out from Google
       await GoogleSignin.revokeAccess();
       await GoogleSignin.signOut();
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Update UI state
       setUserInfo({ user: null, error: null });
       setIsSignedIn(false);
     } catch (error) {

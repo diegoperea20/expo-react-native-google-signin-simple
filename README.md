@@ -1,7 +1,7 @@
-# Expo React Native Google Sign In with Nativewind (Tailwind CSS)
+# Expo React Native Google Sign with Supabase
 
 Expo React Native app with Google Sign In using [`react-native-google-signin/google-signin`](https://github.com/react-native-google-signin/google-signin)
-very simple for learning purposes with Nativewind (Tailwind CSS)
+very simple for learning purposes with Nativewind (Tailwind CSS) and Supabase
 
 google sign library web [WEB react-native-google-signin](https://react-native-google-signin.github.io/)
 
@@ -116,9 +116,18 @@ Run the app for the android folder, which takes approximately 30 minutes to run 
 Create .env file in the root of the project and add the following or copy the .env.example file to .env:
 
 ```bash
-GOOGLE_CLIENT_ID_WEB = your_google_client_id_web
-GOOGLE_CLIENT_ID_IOS = your_google_client_id_ios
-IOS_URL_SCHEMA = your_ios_url_schema
+#WEB
+GOOGLE_CLIENT_ID_WEB= your_google_client_id_web
+GOOGLE_CLIENT_SECRET_WEB= your_google_client_secret_web
+#ANDROID
+GOOGLE_CLIENT_ID_ANDROID= your_google_client_id_android
+#OS
+GOOGLE_CLIENT_ID_IOS= your_google_client_id_ios
+#SCHEMA URL of iOS
+IOS_URL_SCHEMA=    
+#SUPABASE
+EXPO_PUBLIC_SUPABASE_URL= your_supabase_url
+EXPO_PUBLIC_SUPABASE_KEY= your_supabase_key
 ```
 for doing this go to the [google console](https://console.developers.google.com/) and create a new project and add the android and ios client ids.
 
@@ -170,11 +179,50 @@ npx expo install @react-native-google-signin/google-signin expo-dev-client
 npx expo install expo-constants
 ```
 
-## Nativewind (Tailwind CSS)
+## SUPABASE
 
-For use Nativewind (Tailwind CSS) you need to run the following commands in the web :
-### [Nativewind](https://www.nativewind.dev/docs/getting-started/installation)
+For use SUPABASE you need to run the following commands in the web :
+### [SUPABASE](https://supabase.com/)
 
+for Expo React native supabase use [supabase-js](https://supabase.com/docs/reference/javascript/typescript-support)
+
+```bash
+npm install @supabase/supabase-js
+```
+
+In supabase create a new project  and create a table named "accounts" with the following columns:
+
+| Name                | Format | Type    | Description |
+|---------------------|--------|---------|-------------|
+| id                  | text   | string  |             |
+| user_id             | text   | string  |             |
+| type                | text   | string  |             |
+| provider            | text   | string  |             |
+| provider_account_id | text   | string  |             |
+| refresh_token       | text   | string  |             |
+| access_token        | text   | string  |             |
+| expires_at          | integer| number  |             |
+| token_type          | text   | string  |             |
+| scope               | text   | string  |             |
+| id_token            | text   | string  |             |
+| session_state       | text   | string  |             |
+
+
+<p align="center">
+  <img src="README-images/tableaccounts.png" alt="tableaccounts">
+</p>
+
+Disable RLS in the table "accounts" in supabase:
+
+<p align="center">
+  <img src="README-images/accountsPolicies.png" alt="accountsPolicies">
+</p>
+
+Example of working with the table "accounts" in supabase:
+
+<p align="center">
+  <img src="README-images/supabaseTableaccounts.png" alt="supabaseTableaccounts">
+</p>
 
 ----
 

@@ -31,6 +31,7 @@ export default {
     },
     plugins: [
       'expo-router',
+      'expo-web-browser',
       [
         'expo-splash-screen',
         {
@@ -56,7 +57,9 @@ export default {
     },
     extra: {
       googleWebClientId: process.env.GOOGLE_CLIENT_ID_WEB,
-      googleIosClientId: process.env.GOOGLE_CLIENT_ID_IOS
+      googleIosClientId: process.env.GOOGLE_CLIENT_ID_IOS,
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_KEY,
     }
   }
 };
