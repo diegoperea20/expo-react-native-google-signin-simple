@@ -66,7 +66,55 @@ export default function App() {
     checkSignInStatus();
   }, []);
 
-  const createOrUpdateAccount = async (userId: string, email: string, name: string, accessToken: string, refreshToken: string, idToken: string) => {
+  const createOrUpdateUser = async (userId: string, email: string, name: string, photoUrl: string | null) => {
+    try {
+      const userData = {
+        id: userId,
+        email: email,
+        name: name,
+        image: photoUrl || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Try to update existing user first
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (existingUser) {
+        // Only update the updatedAt timestamp for existing users
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('users')
+          .update({
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', userId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        return updatedUser;
+      } else {
+        // Create new user
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert([userData])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        return newUser;
+      }
+    } catch (error) {
+      console.error('Error managing user:', error);
+      throw error;
+    }
+  };
+
+  const createOrUpdateAccount = async (userId: string, email: string, name: string, accessToken: string, refreshToken: string, idToken: string, photoUrl?: string | null) => {
   try {
     // First, check if the account exists
     const { data: existingAccount, error: fetchError } = await supabase
@@ -167,23 +215,36 @@ export default function App() {
       throw supabaseError || new Error('Failed to authenticate with Supabase');
     }
 
-    // Create or update account in your accounts table
+    const userName = user.user_metadata?.full_name || 'No Name';
+    const userEmail = user.email || '';
+    const userPhoto = user.user_metadata?.avatar_url || null;
+
+    // Create or update user in users table
+    await createOrUpdateUser(
+      user.id,
+      userEmail,
+      userName,
+      userPhoto
+    );
+
+    // Create or update account in accounts table
     await createOrUpdateAccount(
       user.id,
-      user.email || '',
-      user.user_metadata?.full_name || 'No Name',
+      userEmail,
+      userName,
       accessToken,
       session.refresh_token || '',
-      idToken
+      idToken,
+      userPhoto
     );
 
     // Update UI state
     setUserInfo({
       user: {
         id: user.id,
-        name: user.user_metadata?.full_name || 'No Name',
-        email: user.email || '',
-        photo: user.user_metadata?.avatar_url || null,
+        name: userName,
+        email: userEmail,
+        photo: userPhoto,
       },
       error: null,
     });

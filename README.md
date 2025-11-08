@@ -224,6 +224,42 @@ Example of working with the table "accounts" in supabase:
   <img src="README-images/supabaseTableaccounts.png" alt="supabaseTableaccounts">
 </p>
 
+
+Enable Google in Auth supabase:
+<p align="center">
+  <img src="README-images/AuthgoogleSupabase.png" alt="supabaseAuthGoogle">
+</p>
+
+
+So now create a new table in supabase named "users" with the following columns:
+
+| Name      | Format                    | Type     |
+|-----------|---------------------------|----------|
+| id        | text                      | string   |
+| createdAt | timestamp without time zone | string   |
+| updatedAt | timestamp without time zone | string   |
+| name      | text                      | string   |
+| email     | text                      | string   |
+| image     | text                      | string   |
+
+
+<p align="center">
+  <img src="README-images/TableuserSupabase.png" alt="TableuserSupabase">
+</p>
+
+> **Note:** Very important to disable RLS in the table "users" in supabase and
+edit column "user_id" of table accounts
+
+<p align="center">
+  <img src="README-images/Foreignkeysuserid.png" alt="Foreignkeysuserid">
+</p>
+
+
+<p align="center">
+  <img src="README-images/GooglesupabaseCompleted.png" alt="GooglesupabaseCompleted">
+</p>
+
+
 ----
 
 
