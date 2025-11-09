@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator, Modal, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 
@@ -9,6 +9,7 @@ type Task = {
   title: string;
   description: string;
   created_at: string;
+  updated_at: string;
 };
 
 type TasksScreenProps = {
@@ -21,6 +22,9 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
 
   const fetchTasks = React.useCallback(async () => {
     try {
@@ -56,16 +60,22 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
         }, 
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setTasks(current => [payload.new as Task, ...current]);
+            setTasks(current => [{
+              ...payload.new as Task,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, ...current]);
           } else if (payload.eventType === 'UPDATE') {
             setTasks(current => 
               current.map(task => 
-                task.id === payload.new.id ? payload.new as Task : task
+                task.id === (payload.new as Task).id 
+                  ? { ...payload.new as Task, updated_at: new Date().toISOString() }
+                  : task
               )
             );
           } else if (payload.eventType === 'DELETE') {
             setTasks(current => 
-              current.filter(task => task.id !== payload.old.id)
+              current.filter(task => task.id !== (payload.old as { id: number }).id)
             );
           }
         }
@@ -85,18 +95,23 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
     }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('task')
         .insert([
           { 
             useremail: userEmail,
             title: title.trim(),
-            description: description.trim()
+            description: description.trim(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }
-        ]);
+        ])
+        .select()
+        .single();
 
       if (error) throw error;
       
+      // The real-time subscription will handle adding the task to the list
       setTitle('');
       setDescription('');
     } catch (error) {
@@ -105,17 +120,67 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
     }
   };
 
-  const handleDeleteTask = async (taskId: number) => {
+  const handleDeleteTask = (taskId: number) => {
+    Alert.alert(
+      'Delete Task',
+      'Are you sure you want to delete this task?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('task')
+                .delete()
+                .eq('id', taskId);
+
+              if (error) throw error;
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete task');
+              console.error('Error deleting task:', error);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setEditTitle(task.title);
+    setEditDescription(task.description);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask || !editTitle.trim() || !editDescription.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('task')
-        .delete()
-        .eq('id', taskId);
+        .update({
+          title: editTitle.trim(),
+          description: editDescription.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingTask.id);
 
       if (error) throw error;
+      
+      setEditingTask(null);
+      setEditTitle('');
+      setEditDescription('');
     } catch (error) {
-      Alert.alert('Error', 'Failed to delete task');
-      console.error('Error deleting task:', error);
+      Alert.alert('Error', 'Failed to update task');
+      console.error('Error updating task:', error);
     }
   };
 
@@ -127,20 +192,89 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
           <Text className="text-gray-600 mt-1">{item.description}</Text>
           <Text className="text-xs text-gray-400 mt-2">
             {new Date(item.created_at).toLocaleString()}
+            {item.updated_at && item.updated_at !== item.created_at && 
+              ` • Updated: ${new Date(item.updated_at).toLocaleString()}`}
           </Text>
         </View>
-        <TouchableOpacity 
-          onPress={() => handleDeleteTask(item.id)}
-          className="p-2 ml-2"
-        >
-          <MaterialCommunityIcons name="delete-outline" size={22} color="#ef4444" />
-        </TouchableOpacity>
+        <View className="flex-row">
+          <TouchableOpacity 
+            onPress={() => handleEditTask(item)}
+            className="p-2"
+          >
+            <MaterialCommunityIcons name="pencil-outline" size={22} color="#3b82f6" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => handleDeleteTask(item.id)}
+            className="p-2"
+          >
+            <MaterialCommunityIcons name="delete-outline" size={22} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
 
+  const renderEditModal = () => (
+    <Modal
+      visible={!!editingTask}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setEditingTask(null)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text className="text-lg font-bold mb-4">Edit Task</Text>
+          <TextInput
+            className="border border-gray-300 rounded-lg p-3 mb-3"
+            placeholder="Task title"
+            value={editTitle}
+            onChangeText={setEditTitle}
+          />
+          <TextInput
+            className="border border-gray-300 rounded-lg p-3 mb-4 h-24"
+            placeholder="Task description"
+            value={editDescription}
+            onChangeText={setEditDescription}
+            multiline
+          />
+          <View className="flex-row justify-end space-x-2">
+            <TouchableOpacity
+              className="px-4 py-2 rounded-lg"
+              onPress={() => setEditingTask(null)}
+            >
+              <Text className="text-gray-600">Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="bg-blue-500 px-4 py-2 rounded-lg"
+              onPress={handleUpdateTask}
+            >
+              <Text className="text-white font-semibold">Save Changes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const styles = StyleSheet.create({
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      backgroundColor: 'white',
+      borderRadius: 12,
+      padding: 20,
+      width: '90%',
+      maxWidth: 400,
+    },
+  });
+
   return (
     <View className="flex-1 bg-gray-100 p-4">
+      {renderEditModal()}
       <View className="flex-row items-center mb-4">
         <TouchableOpacity 
           onPress={onBack}
