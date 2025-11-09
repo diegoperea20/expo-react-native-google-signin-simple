@@ -1,0 +1,197 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { supabase } from '../../supabaseClient';
+
+type Task = {
+  id: number;
+  useremail: string;
+  title: string;
+  description: string;
+  created_at: string;
+};
+
+type TasksScreenProps = {
+  userEmail: string;
+  onBack: () => void;
+};
+
+export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchTasks = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('task')
+        .select('*')
+        .eq('useremail', userEmail)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setTasks(data || []);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to fetch tasks');
+      console.error('Error fetching tasks:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userEmail]);
+
+  useEffect(() => {
+    fetchTasks();
+    
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel('tasks_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'task',
+          filter: `useremail=eq.${userEmail}`
+        }, 
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setTasks(current => [payload.new as Task, ...current]);
+          } else if (payload.eventType === 'UPDATE') {
+            setTasks(current => 
+              current.map(task => 
+                task.id === payload.new.id ? payload.new as Task : task
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setTasks(current => 
+              current.filter(task => task.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [userEmail, fetchTasks]);
+
+
+  const handleAddTask = async () => {
+    if (!title.trim() || !description.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('task')
+        .insert([
+          { 
+            useremail: userEmail,
+            title: title.trim(),
+            description: description.trim()
+          }
+        ]);
+
+      if (error) throw error;
+      
+      setTitle('');
+      setDescription('');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add task');
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    try {
+      const { error } = await supabase
+        .from('task')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete task');
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const renderTaskItem = ({ item }: { item: Task }) => (
+    <View className="bg-white p-4 rounded-lg mb-2 shadow-sm">
+      <View className="flex-row justify-between items-start">
+        <View className="flex-1">
+          <Text className="font-bold text-lg text-gray-800">{item.title}</Text>
+          <Text className="text-gray-600 mt-1">{item.description}</Text>
+          <Text className="text-xs text-gray-400 mt-2">
+            {new Date(item.created_at).toLocaleString()}
+          </Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => handleDeleteTask(item.id)}
+          className="p-2 ml-2"
+        >
+          <MaterialCommunityIcons name="delete-outline" size={22} color="#ef4444" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  return (
+    <View className="flex-1 bg-gray-100 p-4">
+      <View className="flex-row items-center mb-4">
+        <TouchableOpacity 
+          onPress={onBack}
+          className="p-2 mr-2"
+        >
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#4b5563" />
+        </TouchableOpacity>
+        <Text className="text-2xl font-bold text-gray-800">My Tasks</Text>
+      </View>
+
+      <View className="bg-white p-4 rounded-lg shadow-sm mb-4">
+        <Text className="text-lg font-semibold mb-3">Add New Task</Text>
+        <TextInput
+          className="border border-gray-300 rounded-lg p-3 mb-3"
+          placeholder="Task title"
+          value={title}
+          onChangeText={setTitle}
+        />
+        <TextInput
+          className="border border-gray-300 rounded-lg p-3 mb-3 h-20"
+          placeholder="Task description"
+          value={description}
+          onChangeText={setDescription}
+          multiline
+        />
+        <TouchableOpacity
+          className="bg-blue-500 py-3 rounded-lg items-center"
+          onPress={handleAddTask}
+        >
+          <Text className="text-white font-semibold">Add Task</Text>
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#3b82f6" />
+        </View>
+      ) : tasks.length === 0 ? (
+        <View className="flex-1 items-center justify-center">
+          <MaterialCommunityIcons name="clipboard-text-outline" size={64} color="#d1d5db" />
+          <Text className="text-gray-400 mt-2">No tasks yet</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={tasks}
+          renderItem={renderTaskItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
+  );
+};
