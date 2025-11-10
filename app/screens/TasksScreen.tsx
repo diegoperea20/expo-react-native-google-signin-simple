@@ -46,9 +46,10 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
   }, [userEmail]);
 
   useEffect(() => {
+    // Initial fetch
     fetchTasks();
     
-    // Subscribe to realtime changes
+    // Set up real-time subscription
     const channel = supabase
       .channel('tasks_changes')
       .on('postgres_changes', 
@@ -59,33 +60,60 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
           filter: `useremail=eq.${userEmail}`
         }, 
         (payload) => {
-          if (payload.eventType === 'INSERT') {
-            setTasks(current => [{
-              ...payload.new as Task,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }, ...current]);
-          } else if (payload.eventType === 'UPDATE') {
-            setTasks(current => 
-              current.map(task => 
-                task.id === (payload.new as Task).id 
-                  ? { ...payload.new as Task, updated_at: new Date().toISOString() }
-                  : task
-              )
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setTasks(current => 
-              current.filter(task => task.id !== (payload.old as { id: number }).id)
-            );
-          }
+          console.log('Realtime event received:', payload);
+          
+          // Use functional updates to ensure we're working with the latest state
+          setTasks(currentTasks => {
+            switch (payload.eventType) {
+              case 'INSERT':
+                // Add new task at the beginning of the list
+                return [{
+                  ...payload.new as Task,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                }, ...currentTasks];
+                
+              case 'UPDATE':
+                // Update existing task
+                return currentTasks.map(task => 
+                  task.id === (payload.new as Task).id 
+                    ? { 
+                        ...payload.new as Task, 
+                        updated_at: new Date().toISOString() 
+                      }
+                    : task
+                );
+                
+              case 'DELETE':
+                // Remove deleted task
+                return currentTasks.filter(
+                  task => task.id !== (payload.old as { id: number }).id
+                );
+                
+              default:
+                return currentTasks;
+            }
+          });
         }
       )
-      .subscribe();
+      .subscribe(
+        (status) => {
+          console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to tasks changes');
+          }
+        },
+        (error) => {
+          console.error('Subscription error:', error);
+        }
+      );
 
+    // Cleanup function
     return () => {
-      channel.unsubscribe();
+      console.log('Unsubscribing from tasks channel');
+      supabase.removeChannel(channel);
     };
-  }, [userEmail, fetchTasks]);
+  }, [userEmail]); // Removed fetchTasks from dependencies to prevent unnecessary re-subscriptions
 
 
   const handleAddTask = async () => {
@@ -95,7 +123,9 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
     }
 
     try {
-      const { data, error } = await supabase
+      setIsLoading(true);
+      
+      const { error } = await supabase
         .from('task')
         .insert([
           { 
@@ -105,18 +135,21 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
-        ])
-        .select()
-        .single();
+        ]);
 
       if (error) throw error;
       
-      // The real-time subscription will handle adding the task to the list
+      // Clear form fields
       setTitle('');
       setDescription('');
+      
+      // Optional: Force a refresh if needed (though real-time should handle it)
+      await fetchTasks();
     } catch (error) {
-      Alert.alert('Error', 'Failed to add task');
       console.error('Error adding task:', error);
+      Alert.alert('Error', 'Failed to add task. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -134,15 +167,21 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
           style: 'destructive',
           onPress: async () => {
             try {
+              setIsLoading(true);
               const { error } = await supabase
                 .from('task')
                 .delete()
                 .eq('id', taskId);
 
               if (error) throw error;
+              
+              // Optional: Force a refresh if needed (though real-time should handle it)
+              await fetchTasks();
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete task');
               console.error('Error deleting task:', error);
+              Alert.alert('Error', 'Failed to delete task. Please try again.');
+            } finally {
+              setIsLoading(false);
             }
           },
         },
@@ -164,6 +203,8 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
     }
 
     try {
+      setIsLoading(true);
+      
       const { error } = await supabase
         .from('task')
         .update({
@@ -175,12 +216,18 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
 
       if (error) throw error;
       
+      // Reset form and editing state
       setEditingTask(null);
       setEditTitle('');
       setEditDescription('');
+      
+      // Optional: Force a refresh if needed (though real-time should handle it)
+      await fetchTasks();
     } catch (error) {
-      Alert.alert('Error', 'Failed to update task');
       console.error('Error updating task:', error);
+      Alert.alert('Error', 'Failed to update task. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
