@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, StyleSheet, Alert, BackHandler } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 
@@ -24,6 +24,21 @@ export const TaskAnalyticsScreen = ({ userEmail, onBack }: TaskAnalyticsScreenPr
   const [emailTitles, setEmailTitles] = useState<EmailTitle[]>([]);
   const [activeTab, setActiveTab] = useState<'count' | 'emails' | null>(null);
   const [currentTitle, setCurrentTitle] = useState<string>('');
+
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      onBack(); // Call the parent's back handler
+      return true; // Prevent default behavior (app exit)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [onBack]);
 
   const fetchTitleCounts = async () => {
     setLoading(true);

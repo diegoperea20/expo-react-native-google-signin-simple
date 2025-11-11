@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator, Modal, StyleSheet, BackHandler } from 'react-native';
 import { TaskAnalyticsScreen } from './TaskAnalyticsScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
@@ -27,6 +27,27 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+
+  // Handle back button press
+  useEffect(() => {
+    const backAction = () => {
+      if (showAnalytics) {
+        setShowAnalytics(false);
+        return true; // Prevent default behavior (app exit)
+      } else if (onBack) {
+        onBack(); // Navigate back to UserProfile
+        return true; // Prevent default behavior (app exit)
+      }
+      return false; // Let default back button behavior happen
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [showAnalytics, onBack]);
 
   const fetchTasks = React.useCallback(async () => {
     try {
