@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator, Modal, StyleSheet } from 'react-native';
+import { TaskAnalyticsScreen } from './TaskAnalyticsScreen';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { supabase } from '../../supabaseClient';
 
@@ -18,6 +19,7 @@ type TasksScreenProps = {
 };
 
 export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -319,6 +321,15 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
     },
   });
 
+  if (showAnalytics) {
+    return (
+      <TaskAnalyticsScreen 
+        userEmail={userEmail} 
+        onBack={() => setShowAnalytics(false)} 
+      />
+    );
+  }
+
   return (
     <View className="flex-1 bg-gray-100 p-4">
       {renderEditModal()}
@@ -330,6 +341,12 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
           <MaterialCommunityIcons name="arrow-left" size={24} color="#4b5563" />
         </TouchableOpacity>
         <Text className="text-2xl font-bold text-gray-800">My Tasks</Text>
+        <TouchableOpacity
+          className="ml-auto bg-purple-500 px-4 py-2 rounded-lg"
+          onPress={() => setShowAnalytics(true)}
+        >
+          <Text className="text-white font-semibold">Same Task</Text>
+        </TouchableOpacity>
       </View>
 
       <View className="bg-white p-4 rounded-lg shadow-sm mb-4">
