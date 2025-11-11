@@ -1,18 +1,20 @@
-# Expo React Native Google Sign with Supabase
+# Expo React Native Task App
 
 Expo React Native app with Google Sign In using [`react-native-google-signin/google-signin`](https://github.com/react-native-google-signin/google-signin)
-very simple for learning purposes with Nativewind (Tailwind CSS) and Supabase
+very simple for learning purposes with Nativewind (Tailwind CSS) and Supabase with task app.
 
 google sign library web [WEB react-native-google-signin](https://react-native-google-signin.github.io/)
 
-
+<p align="center">
+  <img src="README-images/indexSigin.png" alt="sign in">
+</p>
 
 <p align="center">
   <img src="README-images/homeindexrn.png" alt="home">
 </p>
 
 <p align="center">
-  <img src="README-images/indexSigin.png" alt="sign in">
+  <img src="README-images/Mytasks.png" alt="my tasks">
 </p>
 
 ----
@@ -257,6 +259,43 @@ edit column "user_id" of table accounts
 
 <p align="center">
   <img src="README-images/GooglesupabaseCompleted.png" alt="GooglesupabaseCompleted">
+</p>
+
+
+## Task App
+
+So now create a new table in supabase named "task" with the following columns:
+
+| Name       | Format                      | Type   |
+|------------|-----------------------------|--------|
+| id         | bigint                      | number |
+| useremail  | text                        | string |
+| title      | text                        | string |
+| description| text                        | string |
+| created_at | timestamp without time zone | string |
+| updated_at | timestamp without time zone | string |            
+
+
+<p align="center">
+  <img src="README-images/tasktableSupabase.png" alt="tasktableSupabase">
+</p>
+
+> **Note:** Very important to disable RLS in the table "task" in supabase
+
+<p align="center">
+  <img src="README-images/Mytasks.png" alt="my tasks">
+</p>
+
+Task analytics Count People same title
+
+<p align="center">
+  <img src="README-images/TaskAnalytics.png" alt="my tasks">
+</p>
+
+Task analytics People with same tile
+
+<p align="center">
+  <img src="README-images/taskAnalyticsbuttons.png" alt="my tasks">
 </p>
 
 
