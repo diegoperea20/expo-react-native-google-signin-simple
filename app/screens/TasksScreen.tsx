@@ -98,17 +98,16 @@ export const TasksScreen = ({ userEmail, onBack }: TasksScreenProps) => {
           });
         }
       )
-      .subscribe(
-        (status) => {
-          console.log('Subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to tasks changes');
-          }
-        },
-        (error) => {
-          console.error('Subscription error:', error);
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('Subscription error:', err);
+          return;
         }
-      );
+        console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to tasks changes');
+        }
+      });
 
     // Cleanup function
     return () => {

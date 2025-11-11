@@ -68,26 +68,41 @@ export const TaskAnalyticsScreen = ({ userEmail, onBack }: TaskAnalyticsScreenPr
     }
   };
 
+  const fetchUserTitles = async () => {
+    // If we already have title counts, use them
+    if (titleCounts.length > 0) {
+      return titleCounts.map(item => item.title);
+    }
+    
+    // Otherwise fetch the titles
+    const { data: userTitlesData, error: titlesError } = await supabase
+      .from('task')
+      .select('title')
+      .eq('useremail', userEmail);
+
+    if (titlesError) throw titlesError;
+    
+    if (!userTitlesData || userTitlesData.length === 0) {
+      return [];
+    }
+    
+    // Return unique titles
+    return [...new Set(userTitlesData.map(item => item.title))];
+  };
+
   const fetchEmailsForTitle = async () => {
     setLoading(true);
     setActiveTab('emails');
     
     try {
-      // First, get all unique titles for the current user
-      const { data: userTitlesData, error: titlesError } = await supabase
-        .from('task')
-        .select('title')
-        .eq('useremail', userEmail);
-
-      if (titlesError) throw titlesError;
+      // Get user's titles (will fetch if not already loaded)
+      const titles = await fetchUserTitles();
       
-      if (!userTitlesData || userTitlesData.length === 0) {
+      if (titles.length === 0) {
+        Alert.alert('Info', 'No tasks found for the current user');
         setEmailTitles([]);
         return;
       }
-
-      // Extract just the title strings
-      const titles = userTitlesData.map(item => item.title);
       
       // Find all tasks that have the same titles as the current user's tasks
       // but exclude the current user's own tasks
@@ -171,7 +186,7 @@ export const TaskAnalyticsScreen = ({ userEmail, onBack }: TaskAnalyticsScreenPr
         <TouchableOpacity
           className={`flex-1 py-3 rounded-lg items-center ${activeTab === 'emails' ? 'bg-green-500' : 'bg-green-400'}`}
           onPress={fetchEmailsForTitle}
-          disabled={loading || titleCounts.length === 0}
+          disabled={loading}
         >
           <Text className="text-white font-semibold text-center">People With Same Titles</Text>
         </TouchableOpacity>
@@ -189,7 +204,7 @@ export const TaskAnalyticsScreen = ({ userEmail, onBack }: TaskAnalyticsScreenPr
               {titleCounts.map((item, index) => (
                 <TouchableOpacity
                   key={index}
-                  onPress={() => fetchEmailsForTitle(item.title)}
+                  onPress={fetchEmailsForTitle}
                 >
                   {renderTableRow([item.count.toString(), item.title], index)}
                 </TouchableOpacity>
